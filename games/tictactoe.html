@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Крестики-нолики - GameHub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #e0f7fa 0%, #c8e6c9 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 1rem 2rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #00796b;
+            margin-bottom: 0.5rem;
+        }
+
+        .game-info {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .status {
+            font-size: 1.5rem;
+            color: #00796b;
+            margin-bottom: 1rem;
+            font-weight: bold;
+            min-height: 2rem;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin: 1rem 0;
+        }
+
+        .stat {
+            background: #e0f2f1;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 10px;
+            margin: 20px auto;
+            justify-content: center;
+        }
+
+        .cell {
+            width: 100px;
+            height: 100px;
+            background: white;
+            border: 3px solid #00796b;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .cell:hover {
+            background: #e0f2f1;
+            transform: scale(1.05);
+        }
+
+        .cell.x {
+            color: #e53935;
+        }
+
+        .cell.o {
+            color: #1e88e5;
+        }
+
+        .cell.winner {
+            background: #c8e6c9;
+            animation: pulse 0.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background: #00796b;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #004d40;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #4db6ac;
+        }
+
+        .difficulty {
+            margin: 1rem 0;
+        }
+
+        .difficulty select {
+            padding: 8px 16px;
+            border: 2px solid #00796b;
+            border-radius: 5px;
+            font-size: 16px;
+            background: white;
+        }
+
+        .game-over {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .game-over-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 300px;
+        }
+
+        @media (max-width: 768px) {
+            .board {
+                grid-template-columns: repeat(3, 80px);
+                grid-template-rows: repeat(3, 80px);
+            }
+            
+            .cell {
+                width: 80px;
+                height: 80px;
+                font-size: 36px;
+            }
+            
+            .stats {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⭕ Крестики-нолики</h1>
+            <p>Играйте против компьютера</p>
+        </div>
+
+        <div class="game-info">
+            <div class="status" id="status">Ваш ход (X)</div>
+            <div class="stats">
+                <div class="stat">Побед: <span id="wins">0</span></div>
+                <div class="stat">Поражений: <span id="losses">0</span></div>
+                <div class="stat">Ничьих: <span id="draws">0</span></div>
+            </div>
+            <div class="difficulty">
+                <label for="difficulty">Сложность:</label>
+                <select id="difficulty" onchange="changeDifficulty()">
+                    <option value="easy">Легкая</option>
+                    <option value="medium" selected>Средняя</option>
+                    <option value="hard">Сложная</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="board" id="board"></div>
+
+        <div class="controls">
+            <button class="btn" onclick="resetGame()">Новая игра</button>
+            <button class="btn btn-secondary" onclick="window.close()">Закрыть игру</button>
+        </div>
+    </div>
+
+    <div id="gameOver" class="game-over">
+        <div class="game-over-content">
+            <h2 id="gameOverTitle">Игра окончена!</h2>
+            <p id="gameOverMessage"></p>
+            <button class="btn" onclick="resetGame()">Играть снова</button>
+        </div>
+    </div>
+
+    <script>
+        let board = ['', '', '', '', '', '', '', '', ''];
+        let currentPlayer = 'X';
+        let gameActive = true;
+        let wins = parseInt(localStorage.getItem('tictactoe-wins')) || 0;
+        let losses = parseInt(localStorage.getItem('tictactoe-losses')) || 0;
+        let draws = parseInt(localStorage.getItem('tictactoe-draws')) || 0;
+        let difficulty = 'medium';
+
+        const winPatterns = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+            [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+            [0, 4, 8], [2, 4, 6] // diagonals
+        ];
+
+        function initializeBoard() {
+            const boardElement = document.getElementById('board');
+            boardElement.innerHTML = '';
+            
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.index = i;
+                cell.addEventListener('click', () => makeMove(i));
+                boardElement.appendChild(cell);
+            }
+            updateStats();
+        }
+
+        function makeMove(index) {
+            if (!gameActive || board[index] !== '') return;
+            
+            board[index] = currentPlayer;
+            document.querySelector(`[data-index="${index}"]`).textContent = currentPlayer;
+            document.querySelector(`[data-index="${index}"]`).classList.add(currentPlayer.toLowerCase());
+            
+            if (checkWinner()) {
+                endGame(currentPlayer);
+                return;
+            }
+            
+            if (board.every(cell => cell !== '')) {
+                endGame('draw');
+                return;
+            }
+            
+            currentPlayer = 'O';
+            document.getElementById('status').textContent = 'Ход компьютера...';
+            
+            setTimeout(computerMove, 500);
+        }
+
+        function computerMove() {
+            if (!gameActive) return;
+            
+            let move;
+            
+            switch(difficulty) {
+                case 'easy':
+                    move = getRandomMove();
+                    break;
+                case 'medium':
+                    move = getMediumMove();
+                    break;
+                case 'hard':
+                    move = getBestMove();
+                    break;
+            }
+            
+            if (move !== -1) {
+                board[move] = 'O';
+                document.querySelector(`[data-index="${move}"]`).textContent = 'O';
+                document.querySelector(`[data-index="${move}"]`).classList.add('o');
+                
+                if (checkWinner()) {
+                    endGame('O');
+                    return;
+                }
+                
+                if (board.every(cell => cell !== '')) {
+                    endGame('draw');
+                    return;
+                }
+                
+                currentPlayer = 'X';
+                document.getElementById('status').textContent = 'Ваш ход (X)';
+            }
+        }
+
+        function getRandomMove() {
+            const emptyCells = board.map((cell, index) => cell === '' ? index : -1).filter(index => index !== -1);
+            return emptyCells.length > 0 ? emptyCells[Math.floor(Math.random() * emptyCells.length)] : -1;
+        }
+
+        function getMediumMove() {
+            // Сначала проверяем выигрышный ход
+            for (let pattern of winPatterns) {
+                const [a, b, c] = pattern;
+                if (board[a] === 'O' && board[b] === 'O' && board[c] === '') return c;
+                if (board[a] === 'O' && board[c] === 'O' && board[b] === '') return b;
+                if (board[b] === 'O' && board[c] === 'O' && board[a] === '') return a;
+            }
+            
+            // Затем блокируем выигрышный ход противника
+            for (let pattern of winPatterns) {
+                const [a, b, c] = pattern;
+                if (board[a] === 'X' && board[b] === 'X' && board[c] === '') return c;
+                if (board[a] === 'X' && board[c] === 'X' && board[b] === '') return b;
+                if (board[b] === 'X' && board[c] === 'X' && board[a] === '') return a;
+            }
+            
+            // Иначе случайный ход
+            return getRandomMove();
+        }
+
+        function getBestMove() {
+            // Простая реализация минимакса
+            let bestScore = -Infinity;
+            let move = -1;
+            
+            for (let i = 0; i < 9; i++) {
+                if (board[i] === '') {
+                    board[i] = 'O';
+                    let score = minimax(board, 0, false);
+                    board[i] = '';
+                    if (score > bestScore) {
+                        bestScore = score;
+                        move = i;
+                    }
+                }
+            }
+            
+            return move !== -1 ? move : getMediumMove();
+        }
+
+        function minimax(board, depth, isMaximizing) {
+            const scores = {
+                'O': 10 - depth,
+                'X': depth - 10,
+                'draw': 0
+            };
+            
+            const result = checkGameResult();
+            if (result !== null) {
+                return scores[result];
+            }
+            
+            if (isMaximizing) {
+                let bestScore = -Infinity;
+                for (let i = 0; i < 9; i++) {
+                    if (board[i] === '') {
+                        board[i] = 'O';
+                        let score = minimax(board, depth + 1, false);
+                        board[i] = '';
+                        bestScore = Math.max(score, bestScore);
+                    }
+                }
+                return bestScore;
+            } else {
+                let bestScore = Infinity;
+                for (let i = 0; i < 9; i++) {
+                    if (board[i] === '') {
+                        board[i] = 'X';
+                        let score = minimax(board, depth + 1, true);
+                        board[i] = '';
+                        bestScore = Math.min(score, bestScore);
+                    }
+                }
+                return bestScore;
+            }
+        }
+
+        function checkGameResult() {
+            for (let pattern of winPatterns) {
+                const [a, b, c] = pattern;
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                    return board[a];
+                }
+            }
+            return board.every(cell => cell !== '') ? 'draw' : null;
+        }
+
+        function checkWinner() {
+            for (let pattern of winPatterns) {
+                const [a, b, c] = pattern;
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                    // Подсвечиваем выигрышную комбинацию
+                    document.querySelector(`[data-index="${a}"]`).classList.add('winner');
+                    document.querySelector(`[data-index="${b}"]`).classList.add('winner');
+                    document.querySelector(`[data-index="${c}"]`).classList.add('winner');
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function endGame(winner) {
+            gameActive = false;
+            
+            if (winner === 'X') {
+                wins++;
+                localStorage.setItem('tictactoe-wins', wins);
+                showGameOver('🎉 Вы выиграли!', 'Поздравляем с победой!');
+            } else if (winner === 'O') {
+                losses++;
+                localStorage.setItem('tictactoe-losses', losses);
+                showGameOver('😔 Компьютер выиграл', 'Попробуйте еще раз!');
+            } else {
+                draws++;
+                localStorage.setItem('tictactoe-draws', draws);
+                showGameOver('🤝 Ничья!', 'Хорошая игра!');
+            }
+            
+            updateStats();
+        }
+
+        function showGameOver(title, message) {
+            document.getElementById('gameOverTitle').textContent = title;
+            document.getElementById('gameOverMessage').textContent = message;
+            document.getElementById('gameOver').style.display = 'flex';
+        }
+
+        function resetGame() {
+            board = ['', '', '', '', '', '', '', '', ''];
+            currentPlayer = 'X';
+            gameActive = true;
+            document.getElementById('status').textContent = 'Ваш ход (X)';
+            document.getElementById('gameOver').style.display = 'none';
+            initializeBoard();
+        }
+
+        function changeDifficulty() {
+            difficulty = document.getElementById('difficulty').value;
+            resetGame();
+        }
+
+        function updateStats() {
+            document.getElementById('wins').textContent = wins;
+            document.getElementById('losses').textContent = losses;
+            document.getElementById('draws').textContent = draws;
+        }
+
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeBoard();
+            updateStats();
+        });
+    </script>
+</body>
+</html>

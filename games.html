@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Игры - GameHub</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <nav class="navbar">
+                <div class="nav-brand">
+                    <h1>🎮 GameHub</h1>
+                </div>
+                <div class="nav-links" id="navLinks">
+                    <a href="games.html" class="nav-link">Игры</a>
+                    <button class="nav-link chat-btn" onclick="openChat()">💬 Чат</button>
+                    <button class="nav-link wallet-btn" onclick="openWallet()">💰 Кошелек</button>
+                    <button id="logoutBtn" class="btn btn-logout">Выйти</button>
+                </div>
+            </nav>
+        </header>
+
+        <main>
+            <div class="games-header">
+                <h2>Бесплатные игры</h2>
+                <div class="search-bar">
+                    <input type="text" id="searchInput" placeholder="Поиск игр...">
+                    <select id="genreFilter">
+                        <option value="">Все жанры</option>
+                        <option value="strategy">Стратегия</option>
+                        <option value="puzzle">Головоломки</option>
+                        <option value="arcade">Аркада</option>
+                        <option value="logic">Логика</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="loading" id="loading" style="display: none;">Загрузка игр...</div>
+            <div class="games-grid" id="gamesGrid">
+                <!-- Games will be loaded here by JavaScript -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Модальные окна (ТОЛЬКО ОДИН РАЗ на странице) -->
+    <!-- Всплывающее окно чата -->
+    <div id="chatModal" class="modal">
+        <div class="modal-content chat-modal">
+            <div class="modal-header">
+                <h2>💬 Общий чат</h2>
+                <span class="close" onclick="closeChat()">&times;</span>
+            </div>
+            <div class="chat-container">
+                <div class="chat-messages" id="globalChatMessages">
+                    <div class="system-message">
+                        Добро пожаловать в общий чат GameHub! 🎮
+                    </div>
+                </div>
+                <div class="chat-input-container">
+                    <input type="text" id="globalChatInput" placeholder="Введите сообщение..." maxlength="500">
+                    <button class="btn btn-primary" onclick="sendGlobalMessage()">Отправить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Всплывающее окно кошелька -->
+    <div id="walletModal" class="modal">
+        <div class="modal-content wallet-modal">
+            <div class="modal-header">
+                <h2>💰 Мой кошелек</h2>
+                <span class="close" onclick="closeWallet()">&times;</span>
+            </div>
+            <div class="wallet-container">
+                <div class="balance-section">
+                    <div class="balance-amount" id="balanceAmount">0 ₽</div>
+                    <div class="balance-label">Текущий баланс</div>
+                </div>
+                
+                <div class="wallet-actions">
+                    <button class="btn btn-primary" onclick="showAddCardForm()">💳 Привязать карту</button>
+                    <button class="btn btn-secondary" onclick="showAddMoneyForm()">💵 Пополнить баланс</button>
+                </div>
+                
+                <!-- Форма привязки карты -->
+                <div id="addCardForm" class="form-section" style="display: none;">
+                    <h3>Привязка банковской карты</h3>
+                    <div class="form-group">
+                        <label>Номер карты:</label>
+                        <input type="text" id="cardNumber" placeholder="0000 0000 0000 0000" 
+                               maxlength="19" oninput="formatCardNumber(this)">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Срок действия:</label>
+                            <input type="text" id="cardExpiry" placeholder="ММ/ГГ" maxlength="5"
+                                   oninput="formatExpiry(this)">
+                        </div>
+                        <div class="form-group">
+                            <label>CVV:</label>
+                            <input type="password" id="cardCvv" placeholder="123" maxlength="3">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-primary" onclick="linkCard()">Привязать карту</button>
+                        <button class="btn btn-secondary" onclick="hideAddCardForm()">Отмена</button>
+                    </div>
+                </div>
+                
+                <!-- Форма пополнения баланса -->
+                <div id="addMoneyForm" class="form-section" style="display: none;">
+                    <h3>Пополнение баланса</h3>
+                    <div class="form-group">
+                        <label>Сумма пополнения:</label>
+                        <input type="number" id="addAmount" placeholder="1000" min="100" max="100000">
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-primary" onclick="addMoney()">Пополнить</button>
+                        <button class="btn btn-secondary" onclick="hideAddMoneyForm()">Отмена</button>
+                    </div>
+                </div>
+                
+                <!-- История операций -->
+                <div class="transaction-history">
+                    <h3>История операций</h3>
+                    <div id="transactionList" class="transaction-list">
+                        <div class="transaction-item">История операций пуста</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script src="js/games.js"></script>
+    <script src="js/wallet-chat.js"></script>
+</body>
+</html>
+
+<div id="walking-cat"></div>
+
+<audio id="meow-sound" preload="auto">
+  <source src="https://assets.mixkit.co/sfx/preview/mixkit-cat-meow-118.mp3" type="audio/mpeg">
+</audio>
+
+<style>
+#walking-cat {
+  position: fixed;
+  bottom: 10px;
+  left: -150px;
+  width: 120px;
+  height: 90px;
+  z-index: 10000;
+  filter: drop-shadow(2px 2px 3px rgba(0,0,0,0.3));
+}
+
+.cat-body {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 80px;
+  height: 40px;
+  background: linear-gradient(45deg, #ff8c00, #ff6b00);
+  border-radius: 40px 40px 30px 30px;
+  animation: bodyMove 0.4s linear infinite;
+}
+
+.cat-head {
+  position: absolute;
+  bottom: 25px;
+  left: 45px;
+  width: 50px;
+  height: 45px;
+  background: linear-gradient(45deg, #ff8c00, #ff6b00);
+  border-radius: 25px 25px 20px 20px;
+}
+
+.cat-ear {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 15px solid #ff6b00;
+}
+
+.cat-ear-left {
+  top: -5px;
+  left: 8px;
+  transform: rotate(-5deg);
+}
+
+.cat-ear-right {
+  top: -5px;
+  right: 8px;
+  transform: rotate(5deg);
+}
+
+.cat-eye {
+  position: absolute;
+  width: 8px;
+  height: 12px;
+  background: #000;
+  border-radius: 50%;
+  top: 12px;
+  animation: blink 3s infinite;
+}
+
+.cat-eye-left {
+  left: 12px;
+}
+
+.cat-eye-right {
+  right: 12px;
+}
+
+.cat-eye::after {
+  content: '';
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: white;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+}
+
+.cat-nose {
+  position: absolute;
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 4px;
+  background: #ff69b4;
+  border-radius: 50%;
+}
+
+.cat-mouth {
+  position: absolute;
+  top: 26px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 6px;
+  background: #000;
+}
+
+.cat-tail {
+  position: absolute;
+  bottom: 15px;
+  left: -15px;
+  width: 30px;
+  height: 8px;
+  background: linear-gradient(45deg, #ff8c00, #ff6b00);
+  border-radius: 8px 0 0 8px;
+  animation: tailMove 0.3s ease-in-out infinite;
+}
+
+.cat-leg {
+  position: absolute;
+  bottom: -10px;
+  width: 12px;
+  height: 20px;
+  background: #ff6b00;
+  border-radius: 6px;
+}
+
+.cat-leg-front-left {
+  left: 15px;
+  animation: legMove 0.4s linear infinite;
+}
+
+.cat-leg-front-right {
+  left: 35px;
+  animation: legMove 0.4s linear infinite 0.2s;
+}
+
+.cat-leg-back-left {
+  left: 55px;
+  animation: legMove 0.4s linear infinite 0.1s;
+}
+
+.cat-leg-back-right {
+  left: 75px;
+  animation: legMove 0.4s linear infinite 0.3s;
+}
+
+/* Анимации */
+@keyframes walk {
+  0% {
+    left: -150px;
+    transform: scaleX(1);
+  }
+  25% {
+    left: 30%;
+    transform: scaleX(1);
+  }
+  26% {
+    transform: scaleX(-1);
+  }
+  50% {
+    left: -150px;
+    transform: scaleX(-1);
+  }
+  51% {
+    transform: scaleX(1);
+  }
+  75% {
+    left: 30%;
+    transform: scaleX(1);
+  }
+  76% {
+    transform: scaleX(-1);
+  }
+  100% {
+    left: -150px;
+    transform: scaleX(-1);
+  }
+}
+
+@keyframes bodyMove {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes tailMove {
+  0%, 100% {
+    transform: rotate(-5deg);
+  }
+  50% {
+    transform: rotate(5deg);
+  }
+}
+
+@keyframes legMove {
+  0%, 100% {
+    height: 15px;
+    bottom: -5px;
+  }
+  50% {
+    height: 20px;
+    bottom: -10px;
+  }
+}
+
+@keyframes blink {
+  0%, 45%, 55%, 100% {
+    height: 12px;
+  }
+  48%, 52% {
+    height: 2px;
+  }
+}
+
+/* Применяем основную анимацию ходьбы */
+#walking-cat {
+  animation: walk 20s linear 2;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const catContainer = document.getElementById('walking-cat');
+  
+  // Создаем элементы кота
+  const catHTML = `
+    <div class="cat-body">
+      <div class="cat-tail"></div>
+      <div class="cat-leg cat-leg-front-left"></div>
+      <div class="cat-leg cat-leg-front-right"></div>
+      <div class="cat-leg cat-leg-back-left"></div>
+      <div class="cat-leg cat-leg-back-right"></div>
+    </div>
+    <div class="cat-head">
+      <div class="cat-ear cat-ear-left"></div>
+      <div class="cat-ear cat-ear-right"></div>
+      <div class="cat-eye cat-eye-left"></div>
+      <div class="cat-eye cat-eye-right"></div>
+      <div class="cat-nose"></div>
+      <div class="cat-mouth"></div>
+    </div>
+  `;
+  
+  catContainer.innerHTML = catHTML;
+  
+  const meowSound = document.getElementById('meow-sound');
+  let meowCount = 0;
+  
+  function playMeow() {
+    if (meowCount < 2) {
+      try {
+        const clone = meowSound.cloneNode();
+        clone.volume = 0.4;
+        clone.play().then(() => {
+          meowCount++;
+        }).catch(e => {
+          console.log('Автовоспроизведение звука заблокировано');
+        });
+      } catch(e) {
+        console.log('Ошибка воспроизведения звука');
+      }
+    }
+  }
+  
+  // Мяукаем в начале анимации
+  setTimeout(playMeow, 1000);
+  
+  // Мяукаем в середине анимации
+  setTimeout(playMeow, 11000);
+  
+  // Клик по коту для дополнительного мяуканья
+  catContainer.addEventListener('click', function() {
+    meowSound.currentTime = 0;
+    meowSound.volume = 0.4;
+    meowSound.play().catch(e => {
+      console.log('Для звука требуется взаимодействие пользователя');
+    });
+  });
+  
+  console.log('Рыжий кот готов к прогулке! 🐈');
+});
+</script>

@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Шахматы - GameHub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #e0f7fa 0%, #c8e6c9 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 1rem 2rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #00796b;
+            margin-bottom: 0.5rem;
+        }
+
+        .game-area {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .chess-board {
+            display: grid;
+            grid-template-columns: repeat(8, 60px);
+            grid-template-rows: repeat(8, 60px);
+            border: 3px solid #00796b;
+            background: #00796b;
+            gap: 1px;
+        }
+
+        .cell {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .white {
+            background-color: #f0d9b5;
+        }
+
+        .black {
+            background-color: #b58863;
+        }
+
+        .selected {
+            background-color: #aec6cf !important;
+            transform: scale(0.95);
+        }
+
+        .valid-move {
+            position: relative;
+        }
+
+        .valid-move::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: rgba(76, 175, 80, 0.3);
+            border-radius: 50%;
+        }
+
+        .controls {
+            margin: 20px;
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background: #00796b;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #004d40;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #4db6ac;
+        }
+
+        .game-info {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            min-width: 200px;
+        }
+
+        .status {
+            font-size: 1.2rem;
+            color: #00796b;
+            margin-bottom: 1rem;
+            font-weight: bold;
+        }
+
+        .move-history {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 1rem;
+            text-align: left;
+        }
+
+        .move-history h3 {
+            color: #00796b;
+            margin-bottom: 0.5rem;
+        }
+
+        .coordinates {
+            display: grid;
+            grid-template-columns: repeat(8, 60px);
+            text-align: center;
+            margin-top: 5px;
+            font-weight: bold;
+            color: #00796b;
+        }
+
+        .file-coordinates {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #00796b;
+        }
+
+        @media (max-width: 768px) {
+            .game-area {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .chess-board {
+                grid-template-columns: repeat(8, 40px);
+                grid-template-rows: repeat(8, 40px);
+            }
+            
+            .cell {
+                width: 40px;
+                height: 40px;
+                font-size: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>♟️ Шахматы</h1>
+            <p>Играйте против компьютера</p>
+        </div>
+
+        <div class="game-area">
+            <div>
+                <div class="file-coordinates">
+                    <span>a</span><span>b</span><span>c</span><span>d</span><span>e</span><span>f</span><span>g</span><span>h</span>
+                </div>
+                <div id="chessBoard" class="chess-board"></div>
+                <div class="coordinates">
+                    <span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span>
+                </div>
+            </div>
+
+            <div class="game-info">
+                <div class="status" id="status">Ход белых</div>
+                <div class="move-history">
+                    <h3>История ходов:</h3>
+                    <div id="moveHistory"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn" onclick="resetGame()">Новая игра</button>
+            <button class="btn btn-secondary" onclick="window.close()">Закрыть игру</button>
+        </div>
+    </div>
+
+    <script>
+        let selectedPiece = null;
+        let currentPlayer = 'white';
+        let moveHistory = [];
+        const board = [];
+
+        // Начальная расстановка фигур
+        const initialSetup = [
+            ['♜', '♞', '♝', '♛', '♚', '♝', '♞', '♜'],
+            ['♟', '♟', '♟', '♟', '♟', '♟', '♟', '♟'],
+            ['', '', '', '', '', '', '', ''],
+            ['', '', '', '', '', '', '', ''],
+            ['', '', '', '', '', '', '', ''],
+            ['', '', '', '', '', '', '', ''],
+            ['♙', '♙', '♙', '♙', '♙', '♙', '♙', '♙'],
+            ['♖', '♘', '♗', '♕', '♔', '♗', '♘', '♖']
+        ];
+
+        function initializeBoard() {
+            const chessBoard = document.getElementById('chessBoard');
+            chessBoard.innerHTML = '';
+            
+            for (let row = 0; row < 8; row++) {
+                board[row] = [];
+                for (let col = 0; col < 8; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = `cell ${(row + col) % 2 === 0 ? 'white' : 'black'}`;
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    
+                    const piece = initialSetup[row][col];
+                    if (piece) {
+                        cell.textContent = piece;
+                        cell.dataset.piece = piece;
+                    }
+                    
+                    cell.addEventListener('click', () => handleCellClick(row, col));
+                    chessBoard.appendChild(cell);
+                    board[row][col] = piece;
+                }
+            }
+            updateMoveHistory();
+        }
+
+        function handleCellClick(row, col) {
+            const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+            const piece = board[row][col];
+
+            if (selectedPiece) {
+                // Попытка хода
+                if (isValidMove(selectedPiece.row, selectedPiece.col, row, col)) {
+                    movePiece(selectedPiece.row, selectedPiece.col, row, col);
+                }
+                selectedPiece = null;
+                document.querySelectorAll('.cell').forEach(c => {
+                    c.classList.remove('selected', 'valid-move');
+                });
+            } else if (piece && ((currentPlayer === 'white' && isWhitePiece(piece)) || 
+                               (currentPlayer === 'black' && isBlackPiece(piece)))) {
+                // Выбор фигуры
+                selectedPiece = { row, col, piece };
+                cell.classList.add('selected');
+                
+                // Показываем возможные ходы (упрощенно)
+                showValidMoves(row, col);
+            }
+        }
+
+        function isValidMove(fromRow, fromCol, toRow, toCol) {
+            // Упрощенная проверка ходов
+            const piece = board[fromRow][fromCol];
+            
+            // Пешки
+            if (piece === '♙' || piece === '♟') {
+                const direction = piece === '♙' ? -1 : 1;
+                if (fromCol === toCol && Math.abs(toRow - fromRow) === 1 && board[toRow][toCol] === '') {
+                    return true;
+                }
+            }
+            
+            // Ладьи
+            if (piece === '♖' || piece === '♜') {
+                if (fromRow === toRow || fromCol === toCol) {
+                    return true;
+                }
+            }
+            
+            // Слоны
+            if (piece === '♗' || piece === '♝') {
+                if (Math.abs(toRow - fromRow) === Math.abs(toCol - fromCol)) {
+                    return true;
+                }
+            }
+            
+            // Короли
+            if (piece === '♔' || piece === '♚') {
+                if (Math.abs(toRow - fromRow) <= 1 && Math.abs(toCol - fromCol) <= 1) {
+                    return true;
+                }
+            }
+            
+            // Ферзи
+            if (piece === '♕' || piece === '♛') {
+                if (fromRow === toRow || fromCol === toCol || Math.abs(toRow - fromRow) === Math.abs(toCol - fromCol)) {
+                    return true;
+                }
+            }
+            
+            // Кони
+            if (piece === '♘' || piece === '♞') {
+                const rowDiff = Math.abs(toRow - fromRow);
+                const colDiff = Math.abs(toCol - fromCol);
+                if ((rowDiff === 2 && colDiff === 1) || (rowDiff === 1 && colDiff === 2)) {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+
+        function showValidMoves(row, col) {
+            // Упрощенный показ возможных ходов
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    if (isValidMove(row, col, r, c) && !(r === row && c === col)) {
+                        const cell = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+                        cell.classList.add('valid-move');
+                    }
+                }
+            }
+        }
+
+        function isWhitePiece(piece) {
+            return ['♙', '♖', '♘', '♗', '♕', '♔'].includes(piece);
+        }
+
+        function isBlackPiece(piece) {
+            return ['♟', '♜', '♞', '♝', '♛', '♚'].includes(piece);
+        }
+
+        function movePiece(fromRow, fromCol, toRow, toCol) {
+            const piece = board[fromRow][fromCol];
+            const capturedPiece = board[toRow][toCol];
+            
+            // Записываем ход в историю
+            const fromPos = `${String.fromCharCode(97 + fromCol)}${8 - fromRow}`;
+            const toPos = `${String.fromCharCode(97 + toCol)}${8 - toRow}`;
+            moveHistory.push(`${piece} ${fromPos} → ${toPos} ${capturedPiece ? '×' + capturedPiece : ''}`);
+            
+            board[toRow][toCol] = piece;
+            board[fromRow][fromCol] = '';
+            
+            // Обновляем доску
+            initializeBoard();
+            
+            // Меняем игрока
+            currentPlayer = currentPlayer === 'white' ? 'black' : 'white';
+            document.getElementById('status').textContent = `Ход ${currentPlayer === 'white' ? 'белых' : 'черных'}`;
+            
+            // Простой компьютерный ход для черных
+            if (currentPlayer === 'black') {
+                setTimeout(computerMove, 1000);
+            }
+        }
+
+        function computerMove() {
+            // Простой ИИ для черных фигур
+            const blackPieces = [];
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    if (board[row][col] && isBlackPiece(board[row][col])) {
+                        blackPieces.push({row, col, piece: board[row][col]});
+                    }
+                }
+            }
+            
+            if (blackPieces.length > 0) {
+                const randomPiece = blackPieces[Math.floor(Math.random() * blackPieces.length)];
+                const possibleMoves = [];
+                
+                for (let r = 0; r < 8; r++) {
+                    for (let c = 0; c < 8; c++) {
+                        if (isValidMove(randomPiece.row, randomPiece.col, r, c)) {
+                            possibleMoves.push({row: r, col: c});
+                        }
+                    }
+                }
+                
+                if (possibleMoves.length > 0) {
+                    const randomMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+                    movePiece(randomPiece.row, randomPiece.col, randomMove.row, randomMove.col);
+                }
+            }
+        }
+
+        function updateMoveHistory() {
+            const historyElement = document.getElementById('moveHistory');
+            historyElement.innerHTML = moveHistory.map((move, index) => 
+                `<div>${index + 1}. ${move}</div>`
+            ).join('');
+        }
+
+        function resetGame() {
+            selectedPiece = null;
+            currentPlayer = 'white';
+            moveHistory = [];
+            initializeBoard();
+            document.getElementById('status').textContent = 'Ход белых';
+        }
+
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeBoard();
+        });
+    </script>
+</body>
+</html>
