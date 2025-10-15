@@ -10,7 +10,7 @@ const server = http.createServer(app);
 // Настройки CORS для Socket.io
 const io = socketIo(server, {
     cors: {
-        origin: ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5500", "http://127.0.0.1:5500", "http://localhost:8080"],
+        origin: "*",
         methods: ["GET", "POST"],
         credentials: true
     }
@@ -18,7 +18,7 @@ const io = socketIo(server, {
 
 // Middleware CORS для Express
 app.use(cors({
-    origin: ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5500", "http://127.0.0.1:5500", "http://localhost:8080"],
+    origin: "*",
     credentials: true
 }));
 
